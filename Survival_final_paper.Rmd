@@ -1,0 +1,146 @@
+---
+title: "Survival Anlaysis"
+author: "LEE EUNJI"
+date: "2019년 3월 16일"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Relationship between tumor histology and time to tumor relapse  
+
+
+## 1. Introduction  
+
+ There are two types of histology. One is favorable and the other is unfavorable. It is considered that times to tumor relapse may be different according to the types of histology. So, the purpose of this paper is to assess the relationship between the tumor histology and compare the impact on times to tumor relapse.  
+ 
+ According to the data set, there are 9 variables.  
+ 
+| Variables | Description | 
+| -------- | ------- | 
+| histol | histology from central lab (1 = favorable, 0 = unfavorable)|
+| stage  | disease stage |
+| study  | waves of studies |
+| relpas | indicator for relapse |
+| trel   | time to relapse in years | 
+| dead | indicator for death |
+| tsurv | time to death in years |
+| age | age in years |
+| tumdiam | diameter or tumors in _mm_ |
+
+* Example Of Dataset
+```{r echo=FALSE}
+setwd("C:/Users/EUNJI/Desktop/2018_2/Survival")
+wilms <- read.table("wilms_final.csv", sep=",", header = TRUE)
+head(wilms)
+```
+  
+    
+      
+## 2. Method  
+
+### Getting KM estiamtors and a hazard plot  
+  
+  
+ To set a method to construct an analysis on the relationship between the tumor histology and relapse time, you should get KM estimators and draw a plot.  
+
+  - KM estimators
+```{r echo=TRUE}
+library(survival)
+wilms_km <- survfit(Surv(trel, relaps) ~ histol, conf.type = "log-log", data = wilms)
+wilms_km
+```
+
+  - Plot
+```{r echo=TRUE}
+plot(wilms_km, lwd = c(2, 2), lty = c(2, 1), col = c("blue", "red"), xlab = "Time (in years)",         ylab = "Survival Probablility", main = "Plot of K-M estimates for wlims data")
+legend(2, .3, c("unfavorable", "favorable"), lty = c(1, 2), col = c("red", "blue"))
+```
+  
+  
+ According to the plot above, it seems that there is a difference between the tumor histology. To confirm more accurately whether there is a difference between the tumor histology or not, the log rank test should be conducted.  
+ 
+### Conduct a Log Rank Test
+  
+  
+```{r echo=TRUE}
+wilms_logrank <- survdiff(Surv(trel, relaps) ~ histol, data = wilms)
+wilms_logrank
+``` 
+  
+H~0~ : S~1~(t)=S~0~(t)  
+H~1~ : S~1~(t)=[S~0~(t)]^c^   where c is not equal to 1  
+Because p-value (2e-16) is lower than 0.05, H~0~ can be rejected. Therefore, it is concluded that there is a difference between the tumor histology.  
+
+**A cox model and an AFT model are needed to analyze more about this difference.** 
+
+### Conduct a Cox Model  
+  
+  - model  
+$\lambda(t|Z_1, Z_2, Z_3, Z_4, Z_5) = \lambda_0 (t)exp(\beta_1 Z_1 + \beta_2 Z_2 + \beta_3 Z_3 + \beta_4 Z_4 + \beta_5 Z_5  )$  
+  
+  Z~1~	: histol (1 = favorable, 0 = unfavorable)  
+	Z~2~  : Disease stage(1-4)    
+	Z~3~  : study (3 = NWTSG-3, 4 = NWTSG-4)  
+	Z~4~  : age (age in years)  
+	Z~5~  : tumdiam(Diameter of tumors in _mm_)  
+	$\beta_i$ : regression parameter for Z~i~  
+	
+``` {r echo = TRUE}
+wilms_cox <- coxph(Surv(trel, relaps) ~ histol + as.factor(stage) + as.factor(study) + age +                   tumdiam , data=wilms)
+wilms_cox
+```
+  
+  According to cox model, it seems that histology and stage have valid effect on hazard. To check whether the proportional hazard assumption is true or not, conduct a schoenfeld residual test.  
+  
+  - Schoenfeld residual test
+``` {r echo = TRUE} 
+schf_resi <- cox.zph(wilms_cox,transform = 'km')
+schf_resi
+```
+  
+  The p-values of all covariate are lower than 0.05. That is, the proportional hazard assumption is violated. So, a cox model can not be used to compare the relationship between the tumor histology and relapse time.  
+  
+### Conduct an AFT Model  
+  
+  - model  
+  S~1~(t|Z) = S~0~($\phi$(Z~i~)t)  where $\phi$(Z) = exp($\beta$Z)  
+  $logT = \beta_1 Z_1 + \beta_2 Z_2 + \beta_3 Z_3 + \beta_4 Z_4 + \beta_5 Z_5 +\sigma W )$  
+  
+  Z~1~	: histol (1 = favorable, 0 = unfavorable)  
+	Z~2~  : Disease stage(1-4)    
+	Z~3~  : study (3 = NWTSG-3, 4 = NWTSG-4)  
+	Z~4~  : age (age in years)  
+	Z~5~  : tumdiam(Diameter of tumors in _mm_)  
+	$\beta_i$ : regression parameter for Z~i~  
+	
+``` {r echo = TRUE}
+wilms_aft <- survreg(Surv(trel, relaps) ~ histol + as.factor(stage) + as.factor(study) + age + tumdiam , dist = 'exponential', data = wilms)
+summary(wilms_aft)
+```
+  
+   According to the output in R, the p-value of tumdiam is larger than 0.05. That is, tumdiam does not seem to have valid effect on hazard. So, it is necessary to fit an AFT model without tumdiam covariate.  
+   
+  - an AFT Model without tumdiam  
+
+```{r echo = TRUE}
+wilms_aft.real <- survreg(Surv(trel, relaps) ~ histol + as.factor(stage) + as.factor(study) + age , dist = 'exponential', data = wilms)
+summary(wilms_aft.real)
+```
+  
+ From the output in R above, p-values of all covariate are lower than 0.05. That is, it is reasonable that you should use these values to analyze the relationship between the tumor histology and relapse time.  
+ 
+### 3. Results  
+
+ Through the output in R, $\beta_1 =-1.2875$. From this value, you can get the ratio of the expected time to relapse for favorable histology group and unfavorable histology group.  
+ 
+ $E(T_1)/E(T_0)=exp(-\beta_1)=exp(-1.2875)$ = 3.623761  
+
+ It means that the expected time to relapse for the favorable histology group is 3.6 times larger than that for the unfavorable histology group. 
+
+
+  

@@ -1,0 +1,86 @@
+---
+title: "KOSPI"
+author: "LEE EUNJI"
+date: "2019년 4월 18일"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## 패키지 불러오기
+```{r}
+library(httr)
+library(urltools)
+library(rvest)
+library(tidyverse)
+```
+
+## HTTP 요청
+ https://finance.naver.com/sise/sise_index.nhn?code=KOSPI
+
+```{r}
+UA <- 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)'
+res <- GET( url = 'https://finance.naver.com/sise/sise_index.nhn' ,
+           query = list(code = 'KOSPI'),
+           user_agent(agent = UA))
+status_code(x = res)
+print(res)
+
+# 로케일 변경
+Sys.setlocale(category = 'LC_ALL', locale = 'C')
+
+# 
+html <- read_html(res, encoding = 'EUC-KR')
+span <- html_node(html,
+                  css= '#contentarea_left > div.box_top_sub > div > div.subtop_sise_detail > table')
+tbl <- html_table( x = span, fill = TRUE)
+
+# 로케일 변경
+Sys.setlocale(category = 'LC_ALL', locale = 'korean')
+```
+
+## 테이블 정리  
+
+  - 테이블 합치기  
+  
+
+
+```{r}
+tbl1 <- tbl[,1:2]
+tbl2 <- tbl[,3:4]
+colnames(tbl1) <- c("항목", "시세")
+colnames(tbl2) <- c("항목", "시세")
+tbl <- rbind(tbl1,tbl2)
+tbl<-tbl[-8,]
+tbl<-tbl[c(1,5,2,6,3,7,4),]
+rownames(x = tbl) <- NULL
+tbl
+```
+
+  -  정규식을 이용해 불필요한 부분 삭제
+```{r}
+tbl[7,2] <- tbl[7,2] %>% str_remove_all(pattern = '\n|\t|\\s')
+tbl
+```
+
+  - 등락/종목 나누기
+```{r}
+tbl3 <- tbl[7,2] %>% str_extract_all(pattern = '\\D{5}+\\d{0,3}',simplify = TRUE)
+tbl3 <- t(tbl3)
+tbl3_names <- tbl3[,1] %>% str_extract_all(pattern = '\\D{5}', simplify = TRUE)
+tbl3[,1] <- tbl3[,1] %>% str_remove_all(pattern = '\\D{5}')
+tbl3 <- cbind(tbl3_names,tbl3)
+colnames(tbl3) <- c("항목","시세")
+tbl3
+```
+
+  - 마지막 정리
+```{r}  
+tbl <- rbind(tbl,tbl3)
+tbl
+
+tbl <- tbl[-7,]
+tbl
+```
