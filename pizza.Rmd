@@ -1,0 +1,30 @@
+---
+title: "Untitled"
+author: "LEE EUNJI"
+date: "2019년 4월 10일"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## 피자 데이터 합치기
+``` {r}
+setwd("C:/Users/EUNJI/Desktop/ds_yonsei/프로젝트/피자")
+getwd()
+
+file_ad = c("C:/Users/EUNJI/Desktop/ds_yonsei/프로젝트/피자")
+files = list.files(file_ad)
+
+for(i in 1:12) { 
+  pizza = paste("pizza_",i,sep = "")
+  assign (pizza, read.table(files[i] , sep="," , header=TRUE)) 
+}
+
+pizza = rbind(pizza_1,pizza_2,pizza_3,pizza_4,pizza_5,pizza_6,pizza_7,pizza_8,pizza_9,pizza_10,pizza_11,pizza_12)
+head(pizza)
+tail(pizza)
+
+write.csv(pizza,file="pizza.csv",row.names = FALSE)
+```

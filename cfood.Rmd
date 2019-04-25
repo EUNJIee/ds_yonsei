@@ -1,0 +1,28 @@
+---
+title: "Untitled"
+author: "LEE EUNJI"
+date: "2019년 4월 10일"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## 중국집 합치기
+```{r}
+setwd("C:/Users/EUNJI/Desktop/ds_yonsei/프로젝트/중식")
+getwd()
+
+file_ad = c("C:/Users/EUNJI/Desktop/ds_yonsei/프로젝트/중식")
+files = list.files(file_ad)
+
+for(i in 1:12) { 
+   cfood = paste("cfood_",i,sep = "")
+   assign (cfood, read.table(files[i] , sep="," , header=TRUE)) 
+}
+
+cfood = rbind(cfood_1,cfood_2,cfood_3,cfood_4,cfood_5,cfood_6,cfood_7,cfood_8,cfood_9,cfood_10,cfood_11,cfood_12)
+
+
+```

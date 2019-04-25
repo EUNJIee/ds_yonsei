@@ -1,0 +1,41 @@
+---
+title: "Untitled"
+author: "LEE EUNJI"
+date: "2019년 4월 25일"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## 중국집 최종
+```{r}
+setwd("C:/Users/EUNJI/Desktop/ds_yonsei/프로젝트")
+getwd()
+
+library(tidyverse)
+
+
+# RAIN 데이터 만드는 과정
+rain_gu$region<-paste(rain_gu[,1],rain_gu[,2],sep = "")
+tail(rain_gu)
+rain = rain_gu[,c(1,3,4,5,6,7)]
+
+
+# 이미 만들어 놓은 RAIN, CFOOD 불러오기 
+rain <- read.csv("rain.csv",header = TRUE, sep = ",")
+cfood <- read.csv("cfood.csv",header=TRUE, sep=",")
+
+
+# 기본키 일치시키기
+rain$date = rain$date %>% str_remove_all(pattern = '-')
+cfood$date = as.character(cfood$date)
+rain$date = as.character(rain$date)
+
+cfood$region = as.character(cfood$region)
+rain$region = as.character(rain$region)
+
+# RAIN과 CFOOD 데이터를 date와 region에 따라 병합
+cfood= left_join(cfood,rain,by=c("date","region"))
+```

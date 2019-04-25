@@ -1,0 +1,40 @@
+---
+title: "Untitled"
+author: "LEE EUNJI"
+date: "2019년 4월 16일"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## 날씨 데이터 합치기
+```{r}
+setwd("C:/Users/EUNJI/Desktop/ds_yonsei/프로젝트/weather")
+getwd()
+
+library(tidyverse)
+library(stringr)
+
+file_ad <- c("C:/Users/EUNJI/Desktop/ds_yonsei/프로젝트/weather")
+files <- list.files(file_ad)
+length(files)
+
+for(i in 1:25) { 
+  rain <- paste("rain_",i,sep = "")
+  assign (rain, read.table(files[i] , sep="," , header=TRUE)) 
+}
+
+rains <- rep(0,25)
+for (i in 1:25) {
+  rains[i] <- paste("rain_",i,sep = "")
+}
+
+
+rain = rbind(rain_1,rain_2,rain_3,rain_4,rain_5,rain_6,rain_7,rain_8,rain_9,rain_10,rain_11,rain_12,
+             rain_13,rain_14,rain_15,rain_16,rain_17,rain_18,rain_19,rain_20,rain_21,rain_22,rain_23,
+             rain_24, rain_25)
+head(rain)
+tail(rain)
+```
