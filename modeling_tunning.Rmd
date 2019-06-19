@@ -1,0 +1,173 @@
+---
+title: "Untitled"
+author: "LEE EUNJI"
+date: "2019년 6월 11일"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## 
+```{r warning=FALSE}
+setwd("C:\\Users\\EUNJI\\Desktop\\ds_yonsei\\프로젝트\\data\\real")
+final <- read.csv("final_0606.csv", header = TRUE)
+final <- final[,-1]
+library(tidyverse)
+```
+
+## type이 중국집인 경우만 모델링
+# 중국집 데이터 정리 (train과 test셋 나누기)
+``` {r}
+chinese <- final %>% filter(type=="중국집")
+idx_chinese <- sample(1:nrow(chinese),nrow(chinese)*0.7)
+train.df_chinese <- chinese[idx_chinese,]
+test.df_chinese <- chinese[-idx_chinese,]
+```
+
+# one hot 인코딩
+```{R warning = FALSE}
+library(Matrix)                                              
+sparse_matrix_train_chinese <- sparse.model.matrix(call ~                                                  -1+day.x+gender+age+dong+gangsu+rain+temperature+holiday.y+KBO+soccer,                                            data = train.df_chinese)
+sparse_matrix_test_chinese  <- sparse.model.matrix(call ~ -1+day.x+gender+age+dong+gangsu+rain+temperature+holiday.y+KBO+soccer,
+                                           data = test.df_chinese)
+output_vector_chinese <- train.df_chinese$call
+```
+
+# xgboost_1
+```{r results = FALSE, warning=FALSE}
+library(xgboost)
+xgb_chinese <- xgboost(data = sparse_matrix_train_chinese,
+                       label = output_vector_chinese,
+                       max_depth = 6,
+                       eta = 0.3,
+                       nthread = 3,
+                       nrounds = 500,
+                       objective = "count:poisson")
+```
+
+```{r}
+importance_chinese <- xgb.importance(feature_names = colnames(sparse_matrix_train_chinese), model = xgb_chinese)
+head(importance_chinese)
+xgb.plot.importance(importance_matrix = importance_chinese,top_n=15)
+```
+
+# 예측
+```{r}
+pred_chinese <- predict(xgb_chinese, sparse_matrix_test_chinese)
+obs_chinese <- test.df_chinese[,"call"]
+caret::MAE(pred_chinese,obs_chinese)
+caret::RMSE(pred_chinese,obs_chinese)
+```
+
+
+# xgboost_2
+```{r results = FALSE, warning=FALSE}
+library(xgboost)
+xgb_chinese <- xgboost(data = sparse_matrix_train_chinese,
+                       label = output_vector_chinese,
+                       max_depth = 7,
+                       eta = 0.3,
+                       nthread = 3,
+                       nrounds = 500,
+                       objective = "count:poisson")
+```
+
+```{r}
+importance_chinese <- xgb.importance(feature_names = colnames(sparse_matrix_train_chinese), model = xgb_chinese)
+head(importance_chinese)
+xgb.plot.importance(importance_matrix = importance_chinese,top_n=15)
+```
+
+# 예측
+```{r}
+pred_chinese <- predict(xgb_chinese, sparse_matrix_test_chinese)
+obs_chinese <- test.df_chinese[,"call"]
+caret::MAE(pred_chinese,obs_chinese)
+caret::RMSE(pred_chinese,obs_chinese)
+```
+
+# xgboost_3
+```{r results = FALSE, warning=FALSE}
+library(xgboost)
+xgb_chinese <- xgboost(data = sparse_matrix_train_chinese,
+                       label = output_vector_chinese,
+                       max_depth = 5,
+                       eta = 0.3,
+                       nthread = 3,
+                       nrounds = 500,
+                       objective = "count:poisson")
+```
+
+```{r}
+importance_chinese <- xgb.importance(feature_names = colnames(sparse_matrix_train_chinese), model = xgb_chinese)
+head(importance_chinese)
+xgb.plot.importance(importance_matrix = importance_chinese,top_n=15)
+```
+
+# 예측
+```{r}
+pred_chinese <- predict(xgb_chinese, sparse_matrix_test_chinese)
+obs_chinese <- test.df_chinese[,"call"]
+caret::MAE(pred_chinese,obs_chinese)
+caret::RMSE(pred_chinese,obs_chinese)
+```
+
+# xgboost_4
+```{r results = FALSE, warning=FALSE}
+library(xgboost)
+xgb_chinese <- xgboost(data = sparse_matrix_train_chinese,
+                       label = output_vector_chinese,
+                       max_depth = 6,
+                       eta = 0.2,
+                       nthread = 3,
+                       nrounds = 500,
+                       objective = "count:poisson")
+```
+
+```{r}
+importance_chinese <- xgb.importance(feature_names = colnames(sparse_matrix_train_chinese), model = xgb_chinese)
+head(importance_chinese)
+xgb.plot.importance(importance_matrix = importance_chinese,top_n=15)
+```
+
+# 예측
+```{r}
+pred_chinese <- predict(xgb_chinese, sparse_matrix_test_chinese)
+obs_chinese <- test.df_chinese[,"call"]
+caret::MAE(pred_chinese,obs_chinese)
+caret::RMSE(pred_chinese,obs_chinese)
+```
+
+# 중국집 모델링
+```{r}
+chinese <- final %>% filter(type=="중국집")
+# one hot 인코딩
+library(Matrix)                                              
+sparse_matrix_chinese <- sparse.model.matrix(call ~                                                  -1+day.x+gender+age+dong+gangsu+rain+temperature+holiday.y+KBO+soccer,                                            data = chinese)
+output_vector_chinese <- chinese$call
+```
+
+# xgboost_1
+```{r results = FALSE, warning=FALSE}
+library(xgboost)
+xgb_chinese <- xgboost(data = sparse_matrix_chinese,
+                       label = output_vector_chinese,
+                       max_depth = 6,
+                       eta = 0.3,
+                       nthread = 3,
+                       nrounds = 500,
+                       objective = "count:poisson")
+```
+
+```{r}
+importance_chinese <- xgb.importance(feature_names = colnames(sparse_matrix_chinese), model = xgb_chinese)
+head(importance_chinese)
+xgb.plot.importance(importance_matrix = importance_chinese,top_n=15)
+```
+
+
+

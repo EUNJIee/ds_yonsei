@@ -1,0 +1,90 @@
+---
+title: "arima"
+author: "LEE EUNJI"
+date: "2019년 6월 12일"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# 데이터 불러오기
+```{r warning=FALSE}
+setwd("C:\\Users\\EUNJI\\Desktop\\ds_yonsei\\프로젝트\\data\\real")
+final <- read.csv("final_0606.csv", header = TRUE)
+library(tidyverse)
+```
+
+
+# 구 이름 뽑기
+```{r}
+gu_names <- its_eats %>%
+  select(region)
+gu_names <- unique(gu_names)
+rownames(gu_names) <- NULL
+```
+
+# 구별로 중국집 변수 생성 & 필요한 데이터 만들기
+```{r}
+tsdata_chicken_names <- c()
+calls_chicken_names <- c()
+auto_names <- c()
+fit_names <- c()
+pred_names <- c()
+for (i in 1:25) {
+  assign(paste0("tsdata_chicken_",i),
+         unique(its_eats %>%
+           filter(type == "치킨" & region == gu_names[i,1]) %>%
+           select(date, gangsu, rain, temperature, holiday.y, KBO, soccer)
+        ))
+  assign(paste0("calls_chicken_",i),
+        its_eats %>%
+           filter(type == "치킨" & region == gu_names[i,1]) %>%
+           select(date, call) %>%
+           group_by(date) %>%
+           summarise(calls = sum(call)))  
+
+  tsdata_chicken_names[i] <- paste0("tsdata_chicken_",i)
+  calls_chicken_names[i] <- paste0("calls_chicken_",i)
+  auto_names[i] <- paste0("auto_",i)
+  fit_names[i] <- paste0("fit_",i)
+  pred_names[i] <- paste0("pred_",i)
+  assign(paste0("tsdata_chicken_",i) ,
+         ts(left_join(get(calls_chicken_names[i]), get(tsdata_chicken_names[i]), by = "date")))
+
+}
+```
+
+## 모델링 loop
+
+```{r warning=FALSE}
+library(forecast)
+covariate <- c("gangsu","rain","temperature","holiday.y","KBO","soccer")
+for (i in 1:25) {
+  assign(paste0("auto_",i),
+         auto.arima(get(tsdata_chicken_names[i])[,"calls"],
+                    xreg = get(tsdata_chicken_names[i])[,covariate]))
+  ord = get(auto_names[1])$arma[c(1,6,2)]
+  assign(paste0("fit_",i), 
+         arima(get(tsdata_chicken_names[i])[,"calls"],
+               xreg = get(tsdata_chicken_names[i])[,covariate],
+               order = ord, seasonal = list(order=c(0,0,1), period =7)))
+}
+```
+
+# 예측
+```{r}
+for (i in 1:25) {
+  assign(paste0("pred_",i),
+         forecast(get(fit_names[i]), xreg = get(tsdata_chicken_names[i])[,covariate]))
+}
+par(mfrow=c(5,5))
+par(mar=c(1,1,1,1))
+for (i in 1:25) {
+  plot(get(tsdata_chicken_names[i])[,"calls"], main = gu_names[i,1])
+  lines(fitted(get(pred_names[i])), col = "light green")
+  }
+```
