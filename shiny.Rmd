@@ -1,0 +1,98 @@
+---
+title: "Untitled"
+author: "LEE EUNJI"
+date: "2019년 6월 19일"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Regression 
+```{r}
+require(ggplot2)
+library(shiny)
+library(knitr)
+library(rmarkdown)
+
+ui <- fluidPage(
+  titlePanel('Regression Analysis'),
+  sidebarLayout(
+    sidebarPanel(
+      helpText(),
+      selectInput('x', 'Build a regression model of mpg against:',
+                  choices = c("",names(mtcars)[-1])),
+      actionButton("analysis"," Analysis "),
+      hr(),
+      radioButtons('format', 'Document format', c('PDF', 'HTML', 'Word'),
+                   inline = TRUE),
+      downloadButton('downloadReport')
+    ),
+    mainPanel(
+      verbatimTextOutput("text"),
+      plotOutput('regPlot')
+    )
+  )
+)
+
+
+server <- function(input, output) {
+  
+  regEquation=reactive({
+    options(digits = 2)
+    fit <- eval(parse(text=paste0("lm( mpg ~",input$x,",data = mtcars)")))
+    co   <- coef(fit)
+    equation=paste0("mpg = ",round(co[2],2),input$x," + ",round(co[1],2))
+    equation
+  })
+  output$regPlot <- renderPlot({
+    input$analysis
+    
+    isolate({
+      
+      ggplot(data=mtcars,aes_string(req(input$x),"mpg"))+
+        geom_point()+
+        geom_smooth(method="lm")+
+        ggtitle(regEquation())
+    })
+  })
+  
+  output$text=renderPrint({
+    
+    input$analysis
+    
+    isolate({
+      options(digits = 2)
+      fit <- eval(parse(text=paste0("lm(mpg ~",req(input$x),",data = mtcars)")))
+      co   <- coef(fit)
+      summary(fit)
+    })
+  })
+  output$downloadReport <- downloadHandler(
+    filename = function() {
+      paste('my-report', sep = '.', switch(
+        input$format, PDF = 'pdf', HTML = 'html', Word = 'docx'
+      ))
+    },
+    
+    content = function(file) {
+      src <- normalizePath('report.Rmd')
+      
+      owd <- setwd(tempdir())
+      on.exit(setwd(owd))
+      file.copy(src, 'report.Rmd', overwrite = TRUE)
+      
+      library(rmarkdown)
+      out <- render('report.Rmd', switch(
+        input$format,
+        PDF = pdf_document(), HTML = html_document(), Word = word_document()
+      ))
+      file.rename(out, file)
+    }
+  )
+  
+}
+
+shinyApp(ui,server)
+```
